@@ -23,16 +23,12 @@ class Process
 {
 public:
 	PROCESS_INFO process_info;
-	/*Process() {
-		if (!this->process_info.hProcess)
-		{
-			
-		}
-	}
-	~Process() {}*/
 
 	bool process_hacker(LPCWSTR window_class, LPCWSTR window_name)
 	{
+		HANDLE hModuleSnap = INVALID_HANDLE_VALUE;
+		MODULEENTRY32 me32 = { sizeof(MODULEENTRY32) };
+		MODULE_INFO module_info;
 		this->process_info.hWnd = FindWindow(window_class, window_name);
 		if (this->process_info.hWnd == NULL)
 		{
@@ -51,7 +47,29 @@ public:
 			print_string("打开进程ID失败 Error Code - <%d>", RED, GetLastError());
 			return false;
 		}
-		print_string("process_hacker success!!!", RED, GetLastError());
+		
+		hModuleSnap = CreateToolhelp32Snapshot(TH32CS_SNAPMODULE, this->process_info.ProceeID); 
+		if (hModuleSnap == INVALID_HANDLE_VALUE)
+		{
+			print_string("创建模块快照失败 Error Code - <%d>", RED, GetLastError());
+			return false;
+		}
+		Module32First(hModuleSnap, &me32);
+		do {
+			module_info.BaseAddress = me32.modBaseAddr;
+			module_info.ModuleName = me32.szModule;
+			module_info.Size = me32.modBaseSize;
+			print_wstring(L"%s %x %d",YELLOW, me32.szModule, me32.modBaseAddr, me32.modBaseSize);
+			process_info.moudle_list[me32.szModule] = module_info;
+		} while (Module32Next(hModuleSnap, &me32));
+		CloseHandle(hModuleSnap);
+		/*print_string("process_hacker success!!!");
+		print_wstring(L"BaseAddress %x", RED, this->process_info.moudle_list[a].BaseAddress);
+		print_wstring(L"ModuleName %s", RED, this->process_info.moudle_list[a].ModuleName);
+		print_wstring(L"Size %d", RED, this->process_info.moudle_list[a].Size);*/
+
+		print_string("process_info.moudle_list.size() %d",RED, process_info.moudle_list.size());
+
 		return true;
 	}
 
